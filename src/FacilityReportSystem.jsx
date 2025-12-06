@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, MapPin, Calendar, AlertCircle, BarChart3, CheckCircle, Clock, Filter, X, Eye } from 'lucide-react';
 import CampusMap from './CampusMap'; // 새로 만든 지도 컴포넌트 import
+import StatisticsMap from './StatisticsMap'; // 통계용 지도 컴포넌트 import
 
 const buildings = ['백년관', '공학관', '도서관', '교양관', '인문경상관', '어문관', '기숙사', '주차장', '자연과학관', '후생관', '학생회관'];
 const floors = ['지하1층', '지하2층', '1층', '2층', '3층', '4층', '5층', '6층', '7층', '8층'];
@@ -507,6 +508,39 @@ const FacilityReportSystem = () => {
         {activeTab === 'statistics' && isAdmin && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold mb-6">통계</h2>
+            
+            {/* 카카오맵 */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h3 className="text-xl font-bold mb-4">건물별 신고 현황</h3>
+              <StatisticsMap 
+                reports={reports}
+                onBuildingClick={(building) => {
+                  const buildingReports = reports.filter(r => r.building === building);
+                  if (buildingReports.length > 0) {
+                    setSelectedReport(buildingReports[0]);
+                    setShowDetailModal(true);
+                  }
+                }}
+              />
+            </div>
+
+            {/* 상태별 신고건수 */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 text-center">
+                <div className="text-4xl font-bold text-blue-900 mb-2">{stats.statusCount.submitted || 0}</div>
+                <div className="text-gray-600 font-medium">접수</div>
+              </div>
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 text-center">
+                <div className="text-4xl font-bold text-yellow-900 mb-2">{stats.statusCount.processing || 0}</div>
+                <div className="text-gray-600 font-medium">처리중</div>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 text-center">
+                <div className="text-4xl font-bold text-green-900 mb-2">{stats.statusCount.completed || 0}</div>
+                <div className="text-gray-600 font-medium">완료</div>
+              </div>
+            </div>
+
+            {/* 신고 다발 위치 */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h3 className="text-xl font-bold mb-4">신고 다발 위치</h3>
               {stats.topLocations.length === 0 ? (

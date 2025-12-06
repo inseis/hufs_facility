@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, MapPin, Calendar, AlertCircle, BarChart3, CheckCircle, Clock, Filter, X, Eye } from 'lucide-react';
-import CampusMap from './CampusMap'; // 새로 만든 지도 컴포넌트 import
-import StatisticsMap from './StatisticsMap'; // 통계용 지도 컴포넌트 import
+import CampusMap from './src/CampusMap'; // 새로 만든 지도 컴포넌트 import
+import StatisticsMap from './src/StatisticsMap'; // 통계용 지도 컴포넌트 import
 
 const buildings = ['백년관', '공학관', '도서관', '교양관', '인문경상관', '어문관', '기숙사', '주차장', '자연과학관', '후생관', '학생회관'];
 const floors = ['지하1층', '지하2층', '1층', '2층', '3층', '4층', '5층', '6층', '7층', '8층'];
@@ -218,12 +218,12 @@ const FacilityReportSystem = () => {
           <div className="text-center mb-8">
             <div className="mb-6">
               <img 
-                src="https://i.postimg.cc/FRGSLqpB/image.png" 
-                alt="똑딱 로고" 
-                className="w-32 h-32 mx-auto"
+                src="/logo-circle.png" 
+                alt="뚝딱 로고" 
+                className="w-48 h-48 mx-auto"
               />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">똑딱</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">뚝딱</h1>
             <p className="text-gray-600 font-medium">시설물 신고 시스템</p>
             <p className="text-sm text-gray-500 mt-2">한국외국어대학교</p>
           </div>
@@ -261,12 +261,12 @@ const FacilityReportSystem = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <img 
-                src="https://i.postimg.cc/FRGSLqpB/image.png" 
-                alt="똑딱" 
-                className="w-10 h-10"
+                src="/logo.png" 
+                alt="뚝딱" 
+                className="w-16 h-16"
               />
               <div>
-                <h1 className="text-xl font-bold">똑딱</h1>
+                <h1 className="text-xl font-bold">뚝딱</h1>
                 <p className="text-blue-200 text-xs">{isAdmin ? '관리자' : currentUser}</p>
               </div>
             </div>
