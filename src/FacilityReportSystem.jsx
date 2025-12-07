@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, MapPin, Calendar, AlertCircle, BarChart3, CheckCircle, Clock, Filter, X, Eye } from 'lucide-react';
+import { Camera, MapPin, Calendar, AlertCircle, BarChart3, CheckCircle, Clock, Filter, X } from 'lucide-react';
 import CampusMap from './CampusMap'; // 새로 만든 지도 컴포넌트 import
 import StatisticsMap from './StatisticsMap'; // 통계용 지도 컴포넌트 import
 
@@ -429,9 +429,9 @@ const FacilityReportSystem = () => {
                           setSelectedReport(report);
                           setShowDetailModal(true);
                         }}
-                        className="text-blue-900 hover:bg-blue-50 p-2 rounded-lg"
+                        className="text-blue-900 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm font-semibold"
                       >
-                        <Eye size={20} />
+                        상세 보기
                       </button>
                     </div>
                     <p className="text-sm text-gray-700 mb-3">{report.description}</p>
