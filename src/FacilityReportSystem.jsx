@@ -59,18 +59,126 @@ const FacilityReportSystem = () => {
     urgency: 'normal'
   });
 
+  const normalizeToYyyyMmDd = (value) => {
+    if (!value) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+    const parsedFromDate = new Date(value);
+    if (!Number.isNaN(parsedFromDate.getTime())) {
+      return parsedFromDate.toISOString().split('T')[0];
+    }
+
+    const cleaned = value
+      .replace(/\./g, '-')
+      .replace(/년|월/g, '-')
+      .replace(/일/g, '')
+      .replace(/\s+/g, '')
+      .replace(/--+/g, '-')
+      .replace(/-$/g, '');
+
+    const parts = cleaned.split('-').filter(Boolean);
+    if (parts.length >= 3) {
+      const [year, month, day] = parts;
+      if (year.length === 4) {
+        const normalizedMonth = month.padStart(2, '0');
+        const normalizedDay = day.padStart(2, '0');
+        return `${year}-${normalizedMonth}-${normalizedDay}`;
+      }
+    }
+
+    return null;
+  };
+
+  const formatDateForDisplay = (value) => {
+    const normalized = normalizeToYyyyMmDd(value);
+    if (!normalized) {
+      return value || '-';
+    }
+
+    const date = new Date(`${normalized}T00:00:00`);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString('ko-KR');
+    }
+
+    const [year, month, day] = normalized.split('-').map((part) => parseInt(part, 10));
+    if (year && month && day) {
+      return `${year}. ${month}. ${day}.`;
+    }
+
+    return normalized;
+  };
+
+  const formatDateForInput = (value) => {
+    const normalized = normalizeToYyyyMmDd(value);
+    return normalized || '';
+  };
+
+  const calculateDeadlineInfo = (urgency) => {
+    const now = new Date();
+    let days = 7;
+    if (urgency === 'high') days = 1;
+    else if (urgency === 'urgent') days = 0.5;
+    else if (urgency === 'low') days = 14;
+
+    const deadlineDateObj = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    const deadlineDate = deadlineDateObj.toISOString().split('T')[0];
+    return {
+      deadlineDate,
+      deadline: formatDateForDisplay(deadlineDate)
+    };
+  };
+
+  const normalizeReportDeadline = (report) => {
+    const normalizedDate = normalizeToYyyyMmDd(report.deadlineDate || report.deadline);
+    if (normalizedDate) {
+      return {
+        ...report,
+        deadlineDate: normalizedDate,
+        deadline: formatDateForDisplay(normalizedDate)
+      };
+    }
+
+    const fallback = calculateDeadlineInfo(report.urgency || 'normal');
+    return {
+      ...report,
+      ...fallback
+    };
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem('hufs_reports');
     if (stored) {
-      setReports(JSON.parse(stored));
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setReports(parsed.map(normalizeReportDeadline));
+        }
+      } catch (error) {
+        console.error('Failed to parse stored reports', error);
+      }
     }
   }, []);
 
   useEffect(() => {
     if (reports.length > 0) {
       localStorage.setItem('hufs_reports', JSON.stringify(reports));
+    } else {
+      localStorage.removeItem('hufs_reports');
     }
   }, [reports]);
+
+  useEffect(() => {
+    if (!selectedReport) return;
+
+    const updated = reports.find(r => r.id === selectedReport.id);
+    if (updated && updated !== selectedReport) {
+      setSelectedReport(updated);
+    }
+    if (!updated) {
+      setShowDetailModal(false);
+      setSelectedReport(null);
+    }
+  }, [reports, selectedReport]);
 
   const handleLogin = () => {
     if (studentId.length >= 4) {
@@ -94,22 +202,14 @@ const FacilityReportSystem = () => {
     }
   };
 
-  const calculateDeadline = (urgency) => {
-    const now = new Date();
-    let days = 7;
-    if (urgency === 'high') days = 1;
-    else if (urgency === 'urgent') days = 0.5;
-    else if (urgency === 'low') days = 14;
-    now.setDate(now.getDate() + days);
-    return now.toLocaleDateString('ko-KR');
-  };
-
   const handleSubmitReport = () => {
     if (!reportForm.building || !reportForm.floor || !reportForm.room || !reportForm.description) {
       alert('모든 필수 항목을 입력해주세요.');
       return;
     }
     
+    const deadlineInfo = calculateDeadlineInfo(reportForm.urgency);
+
     const newReport = {
       id: Date.now(),
       studentId: currentUser,
@@ -122,10 +222,10 @@ const FacilityReportSystem = () => {
       status: 'submitted',
       date: new Date().toLocaleDateString('ko-KR'),
       timestamp: new Date().toISOString(),
-      deadline: calculateDeadline(reportForm.urgency)
+      ...deadlineInfo
     };
 
-    setReports([newReport, ...reports]);
+    setReports(prevReports => [newReport, ...prevReports]);
     setReportForm({
       building: '',
       floor: '',
@@ -138,13 +238,58 @@ const FacilityReportSystem = () => {
   };
 
   const updateStatus = (id, newStatus) => {
-    setReports(reports.map(r => 
-      r.id === id ? { 
-        ...r, 
-        status: newStatus, 
-        completedDate: newStatus === 'completed' ? new Date().toLocaleDateString('ko-KR') : r.completedDate 
-      } : r
-    ));
+    setReports(prevReports => {
+      const updated = prevReports.map(r =>
+        r.id === id
+          ? {
+              ...r,
+              status: newStatus,
+              completedDate: newStatus === 'completed' ? new Date().toLocaleDateString('ko-KR') : r.completedDate
+            }
+          : r
+      );
+
+      const updatedReport = updated.find(r => r.id === id);
+      if (selectedReport && selectedReport.id === id && updatedReport) {
+        setSelectedReport(updatedReport);
+      }
+
+      return updated;
+    });
+  };
+
+  const updateDeadline = (id, newDeadline) => {
+    setReports(prevReports => {
+      const updated = prevReports.map(r => {
+        if (r.id !== id) return r;
+
+        if (!newDeadline) {
+          return {
+            ...r,
+            deadlineDate: '',
+            deadline: '-'
+          };
+        }
+
+        const normalized = normalizeToYyyyMmDd(newDeadline);
+        if (!normalized) {
+          return r;
+        }
+
+        return {
+          ...r,
+          deadlineDate: normalized,
+          deadline: formatDateForDisplay(normalized)
+        };
+      });
+
+      const updatedReport = updated.find(r => r.id === id);
+      if (selectedReport && selectedReport.id === id && updatedReport) {
+        setSelectedReport(updatedReport);
+      }
+
+      return updated;
+    });
   };
 
   const getFilteredReports = () => {
@@ -614,6 +759,15 @@ const FacilityReportSystem = () => {
                       <option value="processing">처리중</option>
                       <option value="completed">완료</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">처리 예정일</label>
+                    <input
+                      type="date"
+                      value={formatDateForInput(selectedReport.deadlineDate)}
+                      onChange={(e) => updateDeadline(selectedReport.id, e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
                   </div>
                 </div>
               )}
